@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+check() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+notify() {
+	if check notify-send; then
+		notify-send "$@"
+	else
+		echo "$@"
+	fi
+}
+
+check wf-recorder || {
+	notify "wf-recorder not found"
+	exit 1
+}
+check slurp || {
+	notify "slurp not found"
+	exit 1
+}
+
+dir="$HOME/Videos/Screencapture"
+[ -d "$dir" ] || mkdir -p "$dir"
+filename="$dir/$(date +%Y-%m-%d-%H-%M-%S).mkv"
+
+pgrep -x wf-recorder &>/dev/null && {
+	killall -q wf-recorder && notify "wf-recorder stopped"
+	pkill -RTMIN+4 waybar
+	exit 1
+}
+
+[ $# -eq 0 ] && dim="$(slurp -o)" || dim="$(slurp)"
+wf-recorder -f "$filename" -g "$dim" &
+
+pkill -RTMIN+4 waybar
